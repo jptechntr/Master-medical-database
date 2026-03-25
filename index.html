@@ -3,76 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
-    <title>Medicine Database</title>
+    <title>Medicines Database</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        th { background-color: #4CAF50; color: white; text-align: left; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        h1 { color: #333; }
+        #search { width: 100%; padding: 10px; margin: 20px 0; font-size: 16px; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #4CAF50; color: white; }
+        tr:hover { background: #f5f5f5; }
     </style>
 </head>
 <body>
-    <h1>Medicine Database</h1>
-    <input type="text" id="searchInput" placeholder="Search for medicines..." onkeyup="filterTable()">
-    <table id="medicinesTable">
-        <thead>
-            <tr>
-                <th>Brand Name</th>
-                <th>Composition</th>
-                <th>Category</th>
-                <th>HSN Code</th>
-                <th>Manufacture</th>
-                <th>Barcode</th>
-            </tr>
-        </thead>
-        <tbody id="medicinesBody">
-            <!-- Rows will be inserted here dynamically -->
-        </tbody>
-    </table>
+    <div class="container">
+        <h1>💊 Medicines Database</h1>
+        <input type="text" id="search" placeholder="Search medicines..." onkeyup="filterTable()">
+        <button onclick="downloadCSV()">📥 Download CSV</button>
+        
+        <div id="loading">Loading medicines...</div>
+        <table id="medicinesTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>Brand Name</th>
+                    <th>Composition</th>
+                    <th>Category</th>
+                    <th>HSN Code</th>
+                    <th>Manufacturer</th>
+                    <th>Barcode</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
 
     <script>
-        // Function to load CSV data and display it in the table
-        async function loadCSV() {
-            const response = await fetch('medicines_master_dataset.csv');
-            const data = await response.text();
-            const rows = data.split('\n').slice(1);
-            const tableBody = document.getElementById('medicinesBody');
-
-            rows.forEach(row => {
-                const cols = row.split(',');
-                if (cols.length > 1) {
-                    const tr = document.createElement('tr');
-                    cols.forEach(col => {
-                        const td = document.createElement('td');
-                        td.textContent = col;
-                        tr.appendChild(td);
-                    });
-                    tableBody.appendChild(tr);
-                }
+        let allRows = [];
+        
+        function loadCSV() {
+            fetch('medicines_master_dataset.csv')
+                .then(r => r.text())
+                .then(data => {
+                    const lines = data.trim().split('\n');
+                    const tableBody = document.getElementById('tableBody');
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        if (!lines[i].trim()) continue;
+                        
+                        const cols = lines[i].split(',');
+                        const tr = document.createElement('tr');
+                        
+                        for (let j = 0; j < cols.length; j++) {
+                            const td = document.createElement('td');
+                            td.textContent = cols[j].trim();
+                            tr.appendChild(td);
+                        }
+                        
+                        tableBody.appendChild(tr);
+                        allRows.push(tr);
+                    }
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('medicinesTable').style.display = 'table';
+                })
+                .catch(err => {
+                    document.getElementById('loading').innerHTML = 'Error loading data: ' + err.message;
+                });
+        }
+        
+        function filterTable() {
+            const filter = document.getElementById('search').value.toLowerCase();
+            allRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(filter) ? '' : 'none';
             });
         }
-
-        function filterTable() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById('medicinesTable');
-            const tr = table.getElementsByTagName('tr');
-
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName('td');
-                let found = false;
-                for (let j = 0; j < td.length; j++) {
-                    if (td[j].textContent.toLowerCase().includes(filter)) {
-                        found = true;
-                        break;
-                    }
-                }
-                tr[i].style.display = found ? '' : 'none';
-            }
+        
+        function downloadCSV() {
+            const link = document.createElement('a');
+            link.href = 'medicines_master_dataset.csv';
+            link.download = 'medicines_database.csv';
+            link.click();
         }
-
+        
         window.onload = loadCSV;
     </script>
 </body>
